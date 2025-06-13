@@ -145,17 +145,30 @@ bool InitializeImGui(IDirect3DDevice9* pDevice)
     return true;
 }
 
+HCURSOR cursor = LoadCursor(NULL, IDC_ARROW);
+
 void ToggleImGuiWindow()
 {
     showImGuiWindow = !showImGuiWindow;
 
-    // reposition mouse in case it runs away
-    POINT pt = { 100, 100 };
-    ClientToScreen(hWnd, &pt);
-    SetCursorPos(pt.x, pt.y);
+    if (showImGuiWindow)
+    {
+        POINT pt = { 100, 100 };
+        ClientToScreen(hWnd, &pt);
+        SetCursorPos(pt.x, pt.y);
 
-    ShowCursor(showImGuiWindow);
-    ImGui::GetIO().MouseDrawCursor = showImGuiWindow;
+        while (ShowCursor(TRUE) < 0);           // "ShowCursor() doesn't strictly show/hide — it increments/decrements an internal counter.
+                                                // The cursor is only visible/invisible if the counter is >= 0 or <= 0."
+        
+        SetCursor(cursor);                      // To draw an Cursor, since apparently there isn't none in fullscreen mode lol
+        ImGui::GetIO().MouseDrawCursor = true;  // technically redundant since my "own" cursor is used and it reflects its position towards Dear ImGUI one which isn't visible.
+    }
+    else
+    {
+        while (ShowCursor(FALSE) >= 0);
+        SetCursor(NULL);
+        ImGui::GetIO().MouseDrawCursor = false;
+    }
 }
 
 void CreateTexture(IDirect3DDevice9* pDevice)
@@ -189,6 +202,7 @@ void CreateTexture(IDirect3DDevice9* pDevice)
 
 HRESULT WINAPI HookedDrawIndexedPrimitive(LPDIRECT3DDEVICE9 pDevice, D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
+
     if (replaceTextures)
     {
         D3DCAPS9 caps;
@@ -270,6 +284,7 @@ bool B_Peaked = true;
 
 float speed = 0.05;
 
+
 HRESULT APIENTRY hkEndScene(IDirect3DDevice9* pDevice)
 {
     if (rainbow)
@@ -328,9 +343,12 @@ HRESULT APIENTRY hkEndScene(IDirect3DDevice9* pDevice)
             }
         }
 
-        frameworkAPI->Globals->HudColor->crosshair_R = R;
-        frameworkAPI->Globals->HudColor->crosshair_G = G;
-        frameworkAPI->Globals->HudColor->crosshair_B = B;
+        if (rainbow_crosshair)
+        {
+            frameworkAPI->Globals->HudColor->crosshair_R = R;
+            frameworkAPI->Globals->HudColor->crosshair_G = G;
+            frameworkAPI->Globals->HudColor->crosshair_B = B;
+        }
 
         if (lightManager == nullptr)
             lightManager = frameworkAPI->GetLightManager();
@@ -400,6 +418,16 @@ HRESULT APIENTRY hkEndScene(IDirect3DDevice9* pDevice)
         //    done = true;
     }
     */
+
+    // technically not required in windowed mode, but required in fullscreen mode
+    POINT p;
+    if (GetCursorPos(&p))
+    {
+        ScreenToClient(hWnd, &p);
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.MousePos = ImVec2((float)p.x, (float)p.y);
+    }
 
     // update mouse button states directly here since ImGUI can't read the Window Messages
     if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)

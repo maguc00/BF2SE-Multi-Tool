@@ -1,1 +1,5 @@
 # BF2SE-Multi-Tool
+An plugin that allows to play around with features from [BF2SE](https://github.com/maguc00/BF2SE) via the help of [Dear ImGui](https://github.com/ocornut/imgui) and [minHook](https://github.com/TsudaKageyu/minhook).
+To enable the GUI press F11.
+# Installation
+Place `Multi-Tool.dll` into your `plugins` folder found inside your BF2 installation folder. If the plugins folder doesn't exist, create one.
